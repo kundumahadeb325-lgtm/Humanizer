@@ -1,6 +1,6 @@
 import Anthropic, { APIError } from "@anthropic-ai/sdk";
 import type { NextRequest } from "next/server";
-import { MissingApiKeyError, resolveClient } from "@/lib/anthropic";
+import { MissingApiKeyError, describeApiError, resolveClient } from "@/lib/anthropic";
 import { DEFAULT_MODEL, HUMANIZE_SYSTEM_PROMPT, buildHumanizeUserPrompt } from "@/lib/prompts";
 import { MAX_INPUT_CHARS } from "@/lib/types";
 
@@ -110,11 +110,4 @@ export async function POST(req: NextRequest) {
       "Cache-Control": "no-store",
     },
   });
-}
-
-function describeApiError(err: APIError): string {
-  if (err.status === 401) return "That API key was rejected. Double-check it in Settings.";
-  if (err.status === 429) return "Rate limited by Anthropic. Wait a moment and try again.";
-  if (err.status && err.status >= 500) return "Anthropic's API is temporarily unavailable. Please retry shortly.";
-  return err.message || "The rewrite failed. Please try again.";
 }

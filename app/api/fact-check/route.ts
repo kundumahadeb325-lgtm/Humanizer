@@ -1,6 +1,6 @@
 import Anthropic, { APIError, AuthenticationError, RateLimitError } from "@anthropic-ai/sdk";
 import type { NextRequest } from "next/server";
-import { MissingApiKeyError, resolveClient } from "@/lib/anthropic";
+import { MissingApiKeyError, describeApiError, resolveClient } from "@/lib/anthropic";
 import {
   DEFAULT_MODEL,
   FACT_CHECK_JSON_SCHEMA,
@@ -107,16 +107,10 @@ export async function POST(req: NextRequest) {
     response = await runFactCheck(client, text, true);
   } catch (err) {
     if (err instanceof AuthenticationError) {
-      return Response.json(
-        { error: "That API key was rejected. Double-check it in Settings." },
-        { status: 400 },
-      );
+      return Response.json({ error: describeApiError(err) }, { status: 400 });
     }
     if (err instanceof RateLimitError) {
-      return Response.json(
-        { error: "Rate limited by Anthropic. Wait a moment and try again." },
-        { status: 429 },
-      );
+      return Response.json({ error: describeApiError(err) }, { status: 429 });
     }
     // Web search may be unavailable for this key/organization — retry once
     // on the model's own knowledge only, so the feature still works.
@@ -126,7 +120,7 @@ export async function POST(req: NextRequest) {
     } catch (err2) {
       const message =
         err2 instanceof APIError
-          ? err2.message || "Fact-check failed."
+          ? describeApiError(err2)
           : "Fact-check failed unexpectedly. Please try again.";
       return Response.json({ error: message }, { status: 502 });
     }
